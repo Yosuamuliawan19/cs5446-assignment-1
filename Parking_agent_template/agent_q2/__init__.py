@@ -212,12 +212,10 @@ class GeneratePDDL_Stationary :
                 preds.append("(forward_next pt{}pt{} pt{}pt{})".format(
                     w, lane, (w - 1) % self.width, lane))
 
-        preds.append('(timestep pt{})').formate(self.timestep)
+        preds.append('(at_timestamp pt{})').formate(self.timestep)
 
-        for t in range(10000):
-            preds.append("(forward_next_timestep ptime{} ptime{})".format(t, t-1))
-
-        
+        # for t in range(10000):
+        #     preds.append("(forward_next_timestep ptime{} ptime{})".format(t, t-1))
     
         return ' '.join(preds)
 
@@ -285,6 +283,7 @@ def generateDomainPDDLFile(gen):
     '''
 
     gen.addPredicate(name="forward_next_timestep", parameters=[("ptime1" , "gridcell"), ("ptime2" , "gridcell")])
+    gen.addPredicate(name="at_timestamp", parameters=[("ptime1" , "gridcell"), ("ptime2" , "gridcell")])
 
 
     gen.addPredicate(name="at", parameters=(("pt1" , "gridcell"), ("car", "car")))
@@ -311,23 +310,24 @@ def generateDomainPDDLFile(gen):
                   precondition_string="(and (at ?truck ?loc) (at ?pkg ?loc))", 
                   effect_string= "(and (not (at ?pkg ?loc)) (in ?pkg ?truck))")
     '''
+    # move forward in timestep, and change the blocked positions
+    moving_car_effect_string = "(and (not (at_timestamp ptime{}))  (at_timestep ptime{}))".format(self.time_step, self.timestep+1)
+    for car in self.state.cars:
+        moving_car_effect_string.append("(not (blocked pt{}pt{}))".format(car.position.x,car.position.y))
+        moving_car_effect_string.append("(blocked pt{}pt{})".format(car.position.x + car.speed.x, car.position.y  + car.speed.y))
+
     gen.addAction(name="UP",
         parameters=(("pt1" , "gridcell"), ("pt2", "gridcell"), ("agent", "agent")),
         precondition_string="(and (at ?pt1 ?agent) (not (blocked ?pt2)) (up_next ?pt1 ?pt2))",
-        effect_string="(and (not (at ?pt1 ?agent)) (at ?pt2 ?agent))")
+        effect_string="(and (and (not (at ?pt1 ?agent)) (at ?pt2 ?agent))" + moving_car_effect_string + ")")
     gen.addAction(name="DOWN",
         parameters=(("pt1" , "gridcell"), ("pt2", "gridcell"), ("agent", "agent")),
         precondition_string="(and (at ?pt1 ?agent) (not (blocked ?pt2)) (down_next ?pt1 ?pt2))",
-        effect_string="(and (not (at ?pt1 ?agent)) (at ?pt2 ?agent))")
+        effect_string="(and (and (not (at ?pt1 ?agent)) (at ?pt2 ?agent))" + moving_car_effect_string + ")")
     gen.addAction(name="FORWARD",
         parameters=(("pt1" , "gridcell"), ("pt2", "gridcell"), ("agent", "agent")),
         precondition_string="(and (at ?pt1 ?agent) (not (blocked ?pt2)) (forward_next ?pt1 ?pt2))",
-        effect_string="(and (not (at ?pt1 ?agent)) (at ?pt2 ?agent))")
-
-    gen.addAction(name="FORWARD_IN_TIME",
-        parameters=(("pt1" , "gridcell"), ("pt2", "gridcell"), ("agent", "agent")),
-        precondition_string="(and (at ?pt1 ?agent) (not (blocked ?pt2)) (forward_next ?pt1 ?pt2))",
-        effect_string="")
+        effect_string="(and (and (not (at ?pt1 ?agent)) (at ?pt2 ?agent)) " + moving_car_effect_string + ")")
 
     gen.generateDomainPDDL()
     pass
