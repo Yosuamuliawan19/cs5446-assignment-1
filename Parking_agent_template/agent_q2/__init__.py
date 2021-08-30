@@ -212,6 +212,13 @@ class GeneratePDDL_Stationary :
                 preds.append("(forward_next pt{}pt{} pt{}pt{})".format(
                     w, lane, (w - 1) % self.width, lane))
 
+        preds.append('(timestep pt{})').formate(self.timestep)
+
+        for t in range(10000):
+            preds.append("(forward_next_timestep ptime{} ptime{})".format(t, t-1))
+
+        
+    
         return ' '.join(preds)
 
 
@@ -276,12 +283,15 @@ def generateDomainPDDLFile(gen):
     (forward_next ?pt1 ?pt2) : pt2 is the next location of the car when it takes the FORWARD action from pt1
     (blocked ?pt) : The gridcell pt is occupied by a car and is "blocked".
     '''
+
+    gen.addPredicate(name="forward_next_timestep", parameters=[("ptime1" , "gridcell"), ("ptime2" , "gridcell")])
+
+
     gen.addPredicate(name="at", parameters=(("pt1" , "gridcell"), ("car", "car")))
     gen.addPredicate(name="up_next", parameters=(("pt1" , "gridcell"), ("pt2", "gridcell")))
     gen.addPredicate(name="down_next", parameters=(("pt1" , "gridcell"), ("pt2", "gridcell")))
     gen.addPredicate(name="forward_next", parameters=(("pt1" , "gridcell"), ("pt2", "gridcell")))
     gen.addPredicate(name="blocked", parameters=[("pt1" , "gridcell")] , isLastPredicate=True)
-
 
 
     '''
@@ -313,6 +323,11 @@ def generateDomainPDDLFile(gen):
         parameters=(("pt1" , "gridcell"), ("pt2", "gridcell"), ("agent", "agent")),
         precondition_string="(and (at ?pt1 ?agent) (not (blocked ?pt2)) (forward_next ?pt1 ?pt2))",
         effect_string="(and (not (at ?pt1 ?agent)) (at ?pt2 ?agent))")
+
+    gen.addAction(name="FORWARD_IN_TIME",
+        parameters=(("pt1" , "gridcell"), ("pt2", "gridcell"), ("agent", "agent")),
+        precondition_string="(and (at ?pt1 ?agent) (not (blocked ?pt2)) (forward_next ?pt1 ?pt2))",
+        effect_string="")
 
     gen.generateDomainPDDL()
     pass
