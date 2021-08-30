@@ -266,7 +266,7 @@ def initializeSystem(env):
     return gen
 
 
-def generateDomainPDDLFile(gen):
+def generateDomainPDDLFile(self, gen):
     '''
     Function that specifies the domain and generates the PDDL Domain File. 
     As a part of the assignemnt, you will need to add the actions here.
@@ -311,8 +311,8 @@ def generateDomainPDDLFile(gen):
                   effect_string= "(and (not (at ?pkg ?loc)) (in ?pkg ?truck))")
     '''
     # move forward in timestep, and change the blocked positions
-    moving_car_effect_string = "(and (not (at_timestamp ptime{}))  (at_timestep ptime{}))".format(self.time_step, self.timestep+1)
-    for car in self.state.cars:
+    moving_car_effect_string = "(and (not (at_timestamp ptime{}))  (at_timestep ptime{}))".format(gen.time_step, gen.timestep+1)
+    for car in gen.state.cars:
         moving_car_effect_string.append("(not (blocked pt{}pt{}))".format(car.position.x,car.position.y))
         moving_car_effect_string.append("(blocked pt{}pt{})".format(car.position.x + car.speed.x, car.position.y  + car.speed.y))
 
