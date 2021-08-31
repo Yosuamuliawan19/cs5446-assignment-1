@@ -217,16 +217,23 @@ class GeneratePDDL_Stationary :
 
         for w in range(self.width) :
             for lane in range(self.num_lanes) :
+                newX = w - 1
+                if (newX < 0):
+                    continue
                 preds.append("(up_next pt{}pt{} pt{}pt{})".format(
-                    w, lane, (w - 1) % self.width, lane - 1 if (lane - 1 >= 0) else 0))
+                    w, lane, newX, lane - 1 if (lane - 1 >= 0) else 0))
                 preds.append("(down_next pt{}pt{} pt{}pt{})".format(
-                    w, lane, (w - 1) % self.width, lane + 1 if (lane + 1 < self.num_lanes) else (self.num_lanes - 1)))
+                    w, lane, newX, lane + 1 if (lane + 1 < self.num_lanes) else (self.num_lanes - 1)))
                 preds.append("(forward_next pt{}pt{} pt{}pt{})".format(
-                    w, lane, (w - 1) % self.width, lane))
+                    w, lane, newX, lane))
+                if (newX - 1 < 0):
+                    continue
                 preds.append("(forward_next_two pt{}pt{} pt{}pt{})".format(
-                    w, lane, (w - 2) % self.width, lane))
+                    w, lane, newX - 1, lane))
+                if (newX - 2 < 0):
+                    continue
                 preds.append("(forward_next_three pt{}pt{} pt{}pt{})".format(
-                    w, lane, (w - 3) % self.width, lane))
+                    w, lane, newX - 2, lane))
    
         return ' '.join(preds)
 
@@ -388,16 +395,18 @@ def simulateSolution(env):
     for line in plan_file.readlines() :
         if line[0] == '(' :
             action = line.split()[0][1:]
+            print(action)
             if action == 'up' :
                 env.step(env.actions[0])
             if action == 'down' :
                 env.step(env.actions[1])
             if action == 'forward' :
-                env.step(env.actions[2])
+                print('f')
+                env.step(env.actions[4])
             if action == 'forward_two' :
                 env.step(env.actions[3])
             if action == 'forward_three' :
-                env.step(env.actions[4])
+                env.step(env.actions[2])
             env.render()
 
 def generatePlan(env):
