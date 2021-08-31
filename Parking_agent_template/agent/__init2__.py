@@ -212,7 +212,8 @@ class GeneratePDDL_Stationary :
             preds.append("(blocked pt{}pt{} t0)".format(car.position.x, car.position.y))
             for t in range(1, 100):
                 for speed in range(1, -car.speed_range[0] + 1):
-                    preds.append("(blocked pt{}pt{} t{})".format((car.position.x - t * speed) % self.width, car.position.y, t))
+                    prevDistance = (t - 1) * -car.speed_range[0]
+                    preds.append("(blocked pt{}pt{} t{})".format((car.position.x - prevDistance - speed) % self.width, car.position.y, t))
 
         for w in range(self.width) :
             for lane in range(self.num_lanes) :
@@ -301,6 +302,8 @@ def generateDomainPDDLFile(gen):
     gen.addPredicate(name="up_next", parameters=(("pt1" , "gridcell"), ("pt2", "gridcell")))
     gen.addPredicate(name="down_next", parameters=(("pt1" , "gridcell"), ("pt2", "gridcell")))
     gen.addPredicate(name="forward_next", parameters=(("pt1" , "gridcell"), ("pt2", "gridcell")))
+    gen.addPredicate(name="forward_next_two", parameters=(("pt1" , "gridcell"), ("pt2", "gridcell")))
+    gen.addPredicate(name="forward_next_three", parameters=(("pt1" , "gridcell"), ("pt2", "gridcell")))
     gen.addPredicate(name="blocked", parameters=[("pt1" , "gridcell"), ("t", "time")] , isLastPredicate=True) 
 
 
@@ -325,23 +328,23 @@ def generateDomainPDDLFile(gen):
     gen.addAction(name="UP",
         parameters=(("pt1" , "gridcell"), ("pt2", "gridcell"), ("agent", "agent"), ("t1", "time"), ("t2", "time")),
         precondition_string="(and (at ?pt1 ?agent) (not (blocked ?pt2 ?t2)) (up_next ?pt1 ?pt2) (is_time ?t1) (is_next_time ?t1 ?t2))",
-        effect_string="(and (not (at ?pt1 ?agent)) (at ?pt2 ?agent)) (not (is_time ?t1)) (is_time ?t2)")
+        effect_string="(and (not (at ?pt1 ?agent)) (at ?pt2 ?agent) (not (is_time ?t1)) (is_time ?t2))")
     gen.addAction(name="DOWN",
         parameters=(("pt1" , "gridcell"), ("pt2", "gridcell"), ("agent", "agent"), ("t1", "time"), ("t2", "time")),
         precondition_string="(and (at ?pt1 ?agent) (not (blocked ?pt2 ?t2)) (down_next ?pt1 ?pt2) (is_time ?t1) (is_next_time ?t1 ?t2))",
-        effect_string="(and (not (at ?pt1 ?agent)) (at ?pt2 ?agent)) (not (is_time ?t1)) (is_time ?t2)")
+        effect_string="(and (not (at ?pt1 ?agent)) (at ?pt2 ?agent) (not (is_time ?t1)) (is_time ?t2))")
     gen.addAction(name="FORWARD",
         parameters=(("pt1" , "gridcell"), ("pt2", "gridcell"), ("agent", "agent"), ("t1", "time"), ("t2", "time")),
         precondition_string="(and (at ?pt1 ?agent) (not (blocked ?pt2 ?t2)) (forward_next ?pt1 ?pt2) (is_time ?t1) (is_next_time ?t1 ?t2))",
-        effect_string="(and (not (at ?pt1 ?agent)) (at ?pt2 ?agent)) (not (is_time ?t1)) (is_time ?t2)")
+        effect_string="(and (not (at ?pt1 ?agent)) (at ?pt2 ?agent) (not (is_time ?t1)) (is_time ?t2))")
     gen.addAction(name="FORWARD_TWO",
         parameters=(("pt1" , "gridcell"), ("pt2", "gridcell"), ("midPt1", "gridcell"), ("agent", "agent"), ("t1", "time"), ("t2", "time")),
         precondition_string="(and (at ?pt1 ?agent) (not (blocked ?pt2 ?t2)) (forward_next_two ?pt1 ?pt2) (forward_next ?pt1 ?midPt1) (not (blocked ?midPt1 ?t2)) (is_time ?t1) (is_next_time ?t1 ?t2))",
-        effect_string="(and (not (at ?pt1 ?agent)) (at ?pt2 ?agent)) (not (is_time ?t1)) (is_time ?t2)")
+        effect_string="(and (not (at ?pt1 ?agent)) (at ?pt2 ?agent) (not (is_time ?t1)) (is_time ?t2))")
     gen.addAction(name="FORWARD_THREE",
         parameters=(("pt1" , "gridcell"), ("pt2", "gridcell"), ("midPt1", "gridcell"), ("midPt2", "gridcell"), ("agent", "agent"), ("t1", "time"), ("t2", "time")),
         precondition_string="(and (at ?pt1 ?agent) (not (blocked ?pt2 ?t2)) (forward_next_three ?pt1 ?pt2) (forward_next ?pt1 ?midPt1) (not (blocked ?midPt1 ?t2)) (forward_next_two ?pt1 ?midPt2) (not (blocked ?midPt2 ?t2)) (is_time ?t1) (is_next_time ?t1 ?t2))",
-        effect_string="(and (not (at ?pt1 ?agent)) (at ?pt2 ?agent)) (not (is_time ?t1)) (is_time ?t2)")
+        effect_string="(and (not (at ?pt1 ?agent)) (at ?pt2 ?agent) (not (is_time ?t1)) (is_time ?t2))")
 
     gen.generateDomainPDDL()
     pass
@@ -391,6 +394,10 @@ def simulateSolution(env):
                 env.step(env.actions[1])
             if action == 'forward' :
                 env.step(env.actions[2])
+            if action == 'forward_two' :
+                env.step(env.actions[3])
+            if action == 'forward_three' :
+                env.step(env.actions[4])
             env.render()
 
 def generatePlan(env):
@@ -408,6 +415,10 @@ def generatePlan(env):
                 action_sequence.append(env.actions[1])
             if action == 'forward' :
                 action_sequence.append(env.actions[2])
+            if action == 'forward_two' :
+                action_sequence.append(env.actions[3])
+            if action == 'forward_three' :
+                action_sequence.append(env.actions[4])
     return action_sequence
 
 def test():
