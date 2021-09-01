@@ -430,11 +430,11 @@ def generatePlan(env):
             if action == 'down' :
                 action_sequence.append(env.actions[1])
             if action == 'forward' :
-                action_sequence.append(env.actions[4])
+                action_sequence.append(env.actions[2])
             if action == 'forward_two' :
                 action_sequence.append(env.actions[3])
             if action == 'forward_three' :
-                action_sequence.append(env.actions[2])
+                action_sequence.append(env.actions[4])
     return action_sequence
 
 def test():
