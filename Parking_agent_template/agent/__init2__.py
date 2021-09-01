@@ -3,7 +3,7 @@ import gym_grid_driving
 from gym_grid_driving.envs.grid_driving import LaneSpec, Point
 import os 
 import sys
-
+#import time
 
 FAST_DOWNWARD_DIRECTORY_ABSOLUTE_PATH = "/fast_downward/"
 PDDL_FILE_ABSOLUTE_PATH = ""
@@ -205,12 +205,12 @@ class GeneratePDDL_Stationary :
         preds.append("(at pt{}pt{} agent1)".format(self.state.agent.position.x, self.state.agent.position.y))
 
         preds.append("(is_time t0)")
-        for t in range(0, 100):
+        for t in range(0, self.width + 1):
             preds.append("(is_next_time t{} t{})".format(t, t + 1))
 
         for car in self.state.cars:
             preds.append("(blocked pt{}pt{} t0)".format(car.position.x, car.position.y))
-            for t in range(1, 100):
+            for t in range(1, self.width + 1):
                 for speed in range(1, -car.speed_range[0] + 1):
                     prevDistance = (t - 1) * -car.speed_range[0]
                     preds.append("(blocked pt{}pt{} t{})".format((car.position.x - prevDistance - speed) % self.width, car.position.y, t))
@@ -218,18 +218,23 @@ class GeneratePDDL_Stationary :
         for w in range(self.width) :
             for lane in range(self.num_lanes) :
                 newX = w - 1
+                
                 if (newX < 0):
                     continue
-                preds.append("(up_next pt{}pt{} pt{}pt{})".format(
-                    w, lane, newX, lane - 1 if (lane - 1 >= 0) else 0))
-                preds.append("(down_next pt{}pt{} pt{}pt{})".format(
-                    w, lane, newX, lane + 1 if (lane + 1 < self.num_lanes) else (self.num_lanes - 1)))
+                if lane != 0:
+                    preds.append("(up_next pt{}pt{} pt{}pt{})".format(
+                        w, lane, newX, lane - 1 if (lane - 1 >= 0) else 0))
+                if lane != self.num_lanes - 1:
+                    preds.append("(down_next pt{}pt{} pt{}pt{})".format(
+                        w, lane, newX, lane + 1 if (lane + 1 < self.num_lanes) else (self.num_lanes - 1)))
                 preds.append("(forward_next pt{}pt{} pt{}pt{})".format(
                     w, lane, newX, lane))
+                
                 if (newX - 1 < 0):
                     continue
                 preds.append("(forward_next_two pt{}pt{} pt{}pt{})".format(
                     w, lane, newX - 1, lane))
+                
                 if (newX - 2 < 0):
                     continue
                 preds.append("(forward_next_three pt{}pt{} pt{}pt{})".format(
@@ -304,6 +309,9 @@ def generateDomainPDDLFile(gen):
 
     gen.addPredicate(name="is_time", parameters=[("time", "time")])
     gen.addPredicate(name="is_next_time", parameters=[("t1", "time"), ("t2", "time")])
+
+    gen.addPredicate(name="is_top_lane", parameters=[("pt", "gridcell")])
+    gen.addPredicate(name="is_bottom_lane", parameters=[("pt", "gridcell")])
 
     gen.addPredicate(name="at", parameters=(("pt1" , "gridcell"), ("car", "car")))
     gen.addPredicate(name="up_next", parameters=(("pt1" , "gridcell"), ("pt2", "gridcell")))
@@ -401,7 +409,6 @@ def simulateSolution(env):
             if action == 'down' :
                 env.step(env.actions[1])
             if action == 'forward' :
-                print('f')
                 env.step(env.actions[4])
             if action == 'forward_two' :
                 env.step(env.actions[3])
@@ -423,18 +430,18 @@ def generatePlan(env):
             if action == 'down' :
                 action_sequence.append(env.actions[1])
             if action == 'forward' :
-                action_sequence.append(env.actions[2])
+                action_sequence.append(env.actions[4])
             if action == 'forward_two' :
                 action_sequence.append(env.actions[3])
             if action == 'forward_three' :
-                action_sequence.append(env.actions[4])
+                action_sequence.append(env.actions[2])
     return action_sequence
 
 def test():
     '''
     Generates the PDDL files, solves for the optimal solution and simulates the plan. The PDDL files are deleted at the end.
     '''
-
+    #start = time.time()
     import argparse
 
     parser = argparse.ArgumentParser()
@@ -466,7 +473,10 @@ def test():
     generateProblemPDDLFile(gen)
     runPDDLSolver(gen)
     simulateSolution(env)
-    #delete_files(gen)
+    delete_files(gen)
+    #end = time.time()
+    #print("Runtime: ")
+    #print(end - start)
 
 
 try:
@@ -485,7 +495,7 @@ class PDDLAgent(Agent):
         runPDDLSolver(gen)
         self.action_plan = generatePlan(self.env)
         self.time_step = 0
-        #delete_files(gen)
+        delete_files(gen)
 
     def step(self, state, *args, **kwargs):
         action = self.action_plan[self.time_step]
